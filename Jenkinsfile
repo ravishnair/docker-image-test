@@ -1,27 +1,19 @@
-node {
-    def app
-
-    stage('Clone repository') {
-        /* Let's make sure we have the repository cloned to our workspace */
-
-        checkout scm
+pipeline {
+  stages {
+    stage('Build') {
+      steps {
+        sh 'docker build -t nairravish/jenkins-docker-image .'
+      }
     }
-
-    stage('Build image') {
-        /* This builds the actual image; synonymous to
-         * docker build on the command line */
-
-        app = docker.build("ravishnair/docker-image-test")
-    }
-    
-    stage('Push image') {
-        /* Finally, we'll push the image with two tags:
-         * First, the incremental build number from Jenkins
-         * Second, the 'latest' tag.
-         * Pushing multiple tags is cheap, as all the layers are reused. */
-        docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-            app.push("${env.BUILD_NUMBER}")
-            app.push("latest")
+    stage('Publish') {
+      when {
+        branch 'master'
+      }
+      steps {
+        withDockerRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+          sh 'docker push nairravish/jenkins-docker-image'
         }
+      }
     }
+  }
 }
